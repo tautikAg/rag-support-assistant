@@ -5,3 +5,5 @@ rich
 python-dotenv
 pydantic
 tiktoken
+langchain-core
+langchain-community
