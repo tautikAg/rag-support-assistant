@@ -1,0 +1,7 @@
+chromadb
+openai
+gradio
+rich
+python-dotenv
+pydantic
+tiktoken
