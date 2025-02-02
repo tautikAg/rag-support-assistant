@@ -4,6 +4,9 @@ from rich.console import Console
 from rich.markdown import Markdown
 from dotenv import load_dotenv
 from pydantic import BaseModel
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+from langchain_community.llms import Ollama
 
 load_dotenv()
 
@@ -114,6 +117,15 @@ User Query:
 Please provide your response following the above format and guidelines, ensuring to synthesize information when exact answers aren't available.
 """
 
+# Initialize LangChain components
+prompt = ChatPromptTemplate.from_messages(
+    [("system", "You are <Company-Name> Support Assistant, created by Tautik. Your goal is to provide accurate, helpful responses to user queries about <Company-Name> by following this structured approach:"),
+     ("user", "{user_message}")]
+)
+
+output_parser = StrOutputParser()
+llm = Ollama(model="deepseek-r1")
+
 def get_relevant_context(query):
     #get the relevant context based on the query
     collection = client.get_collection("company_docs", embedding_function=openai_ef)
@@ -147,23 +159,13 @@ def chatbot(query, chat_history):
         messages.append({"role": 'assistant', "content": exchange[1]})
 
     messages.append({"role": "user", "content": user_message})
-    
-    # Store messages in msg.json file
-    try:
-        with open('msg.json', 'w') as new_file:
-            json.dump(messages, new_file, indent=4)
-    except IOError as new_e:
-        print(f"Error creating msg.json: {new_e}")
-        
-    response = openai_client.beta.chat.completions.parse(
-        model="gpt-4o",
-        messages=messages,
-        temperature=0.5,
-        max_tokens=1024,
-        response_format=ChainOfThought
-    )
-    
-    response_content = response.choices[0].message.content
+
+    # Create the chain
+    chain = prompt | llm | output_parser
+
+    # Invoke the chain
+    response_content = chain.invoke({"user_message": user_message})
+
     print("Response: ", response_content)
 
     try:
